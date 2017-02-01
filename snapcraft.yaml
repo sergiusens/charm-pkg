@@ -7,7 +7,8 @@ grade: stable
 
 apps:
   charm:
-    command: env UNIXCONFDIR=$SNAP/etc PREFIX=$SNAP GIT_EXEC_PATH=$SNAP/usr/lib/git-core LC_ALL=C.UTF-8 $SNAP/bin/charm
+    # These VARs need to go away to not leak into the environment (if they are unwanted).
+    command: env PATH=$SNAP/bin:$SNAP/usr/bin:$SNAP/libexec/git-core:$PATH GIT_TEMPLATE_DIR=$SNAP/share/git-core/templates UNIXCONFDIR=$SNAP/etc PREFIX=$SNAP GIT_EXEC_PATH=$SNAP/usr/lib/git-core LC_ALL=C.UTF-8 $SNAP/bin/charm
 #   plugs: [network, network-bind, home]
 parts:
   charm:
@@ -24,62 +25,69 @@ parts:
     source: https://github.com/juju/terms-client.git
     source-tag: v1.0.1
     source-type: git
+  python2:
+    source: https://www.python.org/ftp/python/2.7.13/Python-2.7.13.tar.xz
+    plugin: autotools
+    configflags:
+      - --prefix=/usr
+      - --with-ensurepip=install
+    build-packages:
+      - libssl-dev
+      - libbz2-dev
+    stage:
+      - -usr/bin/2to3
+    prime:
+      - -usr/include
   charm-tools:
-    plugin: python
     source: https://github.com/juju/charm-tools.git
+    plugin: python
     python-version: python2
-    # source-branch: "2.1"
     source-tag: v2.2.0
     build-packages:
       - build-essential
     python-packages:
       - simplejson
       - launchpadlib
-    stage-packages:
+      - bz2file
       - bzr
-      - mercurial
-      - python-apt
+      - Mercurial
+    stage-packages:
       - dpkg
-      - python3-venv
+      - libapt-inst2.0
+      - libapt-pkg5.0
+    after: [python2]
+  python-apt:
+    source: lp:python-apt
+    source-commit: "981"
+    plugin: python
+    python-version: python2
+    build-packages:
+      - libapt-pkg-dev
+    stage-packages:
+      - libapt-inst2.0
+      - libapt-pkg5.0
+    stage:
+      - -lib/python2.7/site-packages/pip-9.0.1.dist-info/RECORD
+      - -lib/python2.7/site-packages/setuptools-34.1.0.dist-info/RECORD
+      - -lib/python2.7/site-packages/wheel-0.29.0.dist-info/RECORD
+    after: [python2]
+  git:
+    source: https://github.com/git/git
+    source-type: git
+    source-depth: 1
+    plugin: autotools
+    configflags:
+      - --with-curl
+      - --with-expat
+    build-packages:
+      - gettext
+      - libssl-dev
+      - libcurl4-openssl-dev
+      - libexpat1-dev
+    stage-packages:
+      - libcurl3
   charm-version:
     plugin: dump
     source: workarounds
     stage:
       - charmstore-client-version
-  git:
-    plugin: nil
-    stage-packages:
-      - git
-    snap:
-      - -lib/*/libcrypto.so*
-      - -lib/*/libssl.so*
-      - usr/bin/git*
-      - usr/lib/git*
-      - usr/lib/*/libasn1.so*
-      - usr/lib/*/libcurl-gnutls.so*
-      - usr/lib/*/libffi.so*
-      - usr/lib/*/libgmp.so*
-      - usr/lib/*/libgnutls.so*
-      - usr/lib/*/libgssapi.so*
-      - usr/lib/*/libgssapi_krb5.so*
-      - usr/lib/*/libhcrypto.so*
-      - usr/lib/*/libheimbase.so*
-      - usr/lib/*/libheimntlm.so*
-      - usr/lib/*/libhogweed.so*
-      - usr/lib/*/libhx509.so*
-      - usr/lib/*/libidn.so*
-      - usr/lib/*/libk5crypto.so*
-      - usr/lib/*/libkrb5.so*
-      - usr/lib/*/libkrb5support.so*
-      - usr/lib/*/liblber-2.4.so*
-      - usr/lib/*/libldap_r-2.4.so*
-      - usr/lib/*/libnettle.so*
-      - usr/lib/*/libp11-kit.so*
-      - usr/lib/*/libroken.so*
-      - usr/lib/*/librtmp.so*
-      - usr/lib/*/libsasl2.so*
-      - usr/lib/*/libsqlite3.so*
-      - usr/lib/*/libtasn1.so*
-      - usr/lib/*/libwind.so*
-      - -usr/lib/*/openssl-1.0.0*
-      - -usr/share/doc/libssl1.0.0*
